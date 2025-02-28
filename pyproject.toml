@@ -7,11 +7,15 @@ authors = [
 ]
 license = {text = "Apache-2"}
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = "^3.9"
 dependencies = [
     "click (>=8.1.8,<9.0.0)",
-    "sshconf (>=0.2.7,<0.3.0)"
+    "sshconf (>=0.2.7,<0.3.0)",
+    "loguru (>=0.7.3,<0.8.0)"
 ]
+
+[project.scripts]
+pbsq = "pbsq.console:launch"
 
 [tool.poetry]
 
@@ -19,6 +23,10 @@ dependencies = [
 ipykernel = "^6.29.5"
 docker = "^7.1.0"
 black = "^25.1.0"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.4"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
