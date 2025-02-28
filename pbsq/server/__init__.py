@@ -5,7 +5,7 @@ from functools import partial
 from typing import Tuple
 from pathlib import Path
 
-from .sshconf import read_ssh_config
+from sshconf import read_ssh_config
 from os.path import expanduser
 
 SSH_CONFIG_PATH = "~/.ssh/config"

@@ -1,26 +1,24 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "pbsq"
 version = "0.1.0"
+description = "Python-based PBS job submission"
 authors = [
-    {name = "Kâmuran İmran", email = "c.mcmenamie@unsw.edu.au"}
+    {name = "Kâmuran İmran",email = "c.mcmenamie@unsw.edu.au"}
 ]
-description = "Python API for PBS HPC job submission"
+license = {text = "Apache-2"}
 readme = "README.md"
-requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent", 
-    "License :: OSI Approved :: Apache Software License",
+requires-python = ">=3.9"
+dependencies = [
+    "click (>=8.1.8,<9.0.0)",
+    "sshconf (>=0.2.7,<0.3.0)"
 ]
 
-[tool.black]
-line-length = 79
-target-version = ['py38']
+[tool.poetry]
 
-[project.urls]
-Homepage = "https://github.com/kamurani/pbsq"
-Issues = "https://github.com/kamurani/pbsq/issues"
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+docker = "^7.1.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
