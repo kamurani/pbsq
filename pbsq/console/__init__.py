@@ -1,24 +1,60 @@
 """Command line interface for pbsq."""
-import sys 
-import click as ck 
+
+import sys
+import click as ck
 import subprocess
 
 from pathlib import Path
-from loguru import logger as log 
+from loguru import logger as log
+
 log.add(sys.stderr, level="INFO")
 from pbsq.server import PBSServer
 
+POLL_INTERVAL = 0.5
+
+# TODO:
+# - add help to ck args
+# - add tab autocompletion scripts 
+# - add hostname tab completion (use ~/.ssh/config)
+# - add support for local job scripts
+# - add intelligent remote server expansion of paths example $SCRATCH
+# - add auto install of ssh config required hostname alias
+# - fix logging for qsub wait
+# - add arbitrary command execution for any method (with certain decorator)
+# from PBSServer class
+# e.g. write `qsub` and this will call the `qsub` method of the PBSServer class
+# if a method with that name exists.
+# - refactoring of PBSServer class to use `ssh_command` decorator
+from sshconf import read_ssh_config
+from os.path import expanduser
+from pbsq import SSH_CONFIG_PATH
+
+def complete_hostname(ctx, param, incomplete):
+    """Tab completion for HOSTNAME CLI argument."""
+    c = read_ssh_config(expanduser(SSH_CONFIG_PATH))    
+    hostnames = c.hosts()
+    return [h for h in hostnames if incomplete in h]
 
 @ck.command()
-@ck.argument("hostname", type=str)
-@ck.argument("remote_path", type=ck.Path(
-    exists=False, path_type=Path,
-))
-@ck.argument("job_script", type=ck.Path(
-    exists=False, path_type=Path, 
-))
-@ck.option("--verbose/--no-verbose", default=True)
-@ck.option("--debug/--no-debug", default=True)
+@ck.argument(
+    "hostname", type=str, shell_complete=complete_hostname,
+)
+@ck.argument(
+    "remote_path",
+    type=ck.Path(
+        exists=False,
+        path_type=Path,
+    ),
+)
+@ck.argument(
+    "job_script",
+    type=ck.Path(
+        exists=False,
+        path_type=Path,
+    ),
+)
+@ck.option("--verbose/--no-verbose", default=False)
+@ck.option("--debug/--no-debug", default=False)
 def launch(
     hostname: str,
     remote_path: Path,
@@ -26,65 +62,92 @@ def launch(
     debug: bool = False,
     verbose: bool = True,
 ):
-    
-        
+    """Launch a job on a remote server and open VScode.
+
+    This allows interactive use of GPU compute nodes, such as with a Jupyter notebook.
+    """
+
+    if debug:
+        log.debug(f"Debug mode enabled")
     log.debug(f"Launching job on {hostname} with remote path {remote_path}")
     log.debug(type(remote_path))
 
-    server = PBSServer(hostname, verbose=False, print_output=False) 
+    server = PBSServer(hostname, verbose=verbose)
 
-    if verbose: print(f"Submitting job to {hostname} with job script {job_script}...")
+    if verbose:
+        print(f"Submitting job to {hostname} with job script {job_script}...")
     job_id = server.submit_job(job_script)
-    if verbose: 
+    if verbose:
         print(f"Job submitted with ID: {job_id}")
         print(f"Retrieving job information:", end=" ")
-    
-    info = server.job_info(job_id) 
-    if verbose: print(f"Status: {info['status']}")
+
+    info = server.job_info(job_id)
+    if verbose:
+        print(f"Status: {info['status']}")
     from time import sleep
+
     while server.get_status(job_id) != "R":
-        if verbose: print(".", end="") 
-        sleep(0.5)
-    if verbose: print("Job is running.")
+        if verbose:
+            print(".", end="")
+        sleep(POLL_INTERVAL)
+    if verbose:
+        print("Job is running.")
     info = server.job_info(job_id)
     node = info["node"]
     log.debug(info)
-    if verbose: 
-        print(f"Checking GPU status:") 
+    if verbose:
+        print(f"Checking GPU status:")
         out, err = server.check_gpu(node=node)
         print(out)
         print(err)
 
-    # Launch VScode 
+    # Launch VScode
     target_name = f"{hostname}-{node}"
-    if verbose: print(f"Launching VScode on {target_name}...")
-    cmd_list = ["code", "--remote", f"ssh-remote+{target_name}", remote_path] 
-    if debug: print(cmd_list)
+    if verbose:
+        print(f"Launching VScode on {target_name}...")
+    cmd_list = ["code", "--remote", f"ssh-remote+{target_name}", remote_path]
+    if debug:
+        print(cmd_list)
     captured = subprocess.run(
-        cmd_list, 
+        cmd_list,
         capture_output=True,
     )
-    # kill 
+    # kill
     if debug:
         sleep(60)
-        if verbose: print(f"Killing job {job_id}...")
+        if verbose:
+            print(f"Killing job {job_id}...")
         server.kill_job(job_id)
 
-    
+
+@ck.command()
+@ck.argument("hostname", type=str)
+@ck.argument("job_id", type=str)
+def qstat(
+    hostname: str,
+    job_id: str,
+):
+    """Get information about jobs in the queue.
+
+    Job Status codes:
+    H - Held
+    Q - Queued
+    R - Running
+    """
+    server = PBSServer(hostname)
+    info = server.job_info(job_id)
+    ck.echo(info)
+
+
+@ck.group()
+def entry_point():
+    pass
+
+entry_point.add_command(launch)
+entry_point.add_command(qstat)
 
 
 
 
-
-    
-
-
-
-
-
-
-if __name__ == "__main__":
-    launch()
-
-
-
+#if __name__ == "__main__":
+#    entry_point()
