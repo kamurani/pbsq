@@ -5,6 +5,22 @@
 
 `pip install pbsq` 
 
+## SSH Configuration 
+
+OpenSSH 
+
+```
+Host *
+	ControlMaster auto
+	ControlPath ~/.ssh/controlmasters/%r@%h:%p
+	ControlPersist yes
+
+```
+Create directory 
+```bash
+mkdir -p ~/.ssh/controlmasters
+```
+
 ## VScode
 
 To use the `launch` command, you will need to have `VS code` added to your `$PATH`. 

@@ -25,15 +25,26 @@ POLL_INTERVAL = 0.5
 # e.g. write `qsub` and this will call the `qsub` method of the PBSServer class
 # if a method with that name exists.
 # - refactoring of PBSServer class to use `ssh_command` decorator
+
+# Future TODO: 
+# - add db for currently running jobs, able to login to 
+# any server and see resources, walltime etc. 
+
 from sshconf import read_ssh_config
 from os.path import expanduser
 from pbsq import SSH_CONFIG_PATH
 
 def complete_hostname(ctx, param, incomplete):
     """Tab completion for HOSTNAME CLI argument."""
+    log.debug(f"Completing {param}: {incomplete}")
+    log.debug(f"Context: {ctx.params}")
     c = read_ssh_config(expanduser(SSH_CONFIG_PATH))    
     hostnames = c.hosts()
     return [h for h in hostnames if incomplete in h]
+
+
+    
+from .completion import complete_remote_path
 
 @ck.command()
 @ck.argument(
@@ -45,6 +56,7 @@ def complete_hostname(ctx, param, incomplete):
         exists=False,
         path_type=Path,
     ),
+    shell_complete=complete_remote_path, 
 )
 @ck.argument(
     "job_script",
@@ -55,7 +67,7 @@ def complete_hostname(ctx, param, incomplete):
 )
 @ck.option("--verbose/--no-verbose", default=False)
 @ck.option("--debug/--no-debug", default=False)
-def launch(
+def code(
     hostname: str,
     remote_path: Path,
     job_script: Path,
@@ -143,7 +155,7 @@ def qstat(
 def entry_point():
     pass
 
-entry_point.add_command(launch)
+entry_point.add_command(code)
 entry_point.add_command(qstat)
 
 

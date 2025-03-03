@@ -231,3 +231,8 @@ class PBSServer:
         cmd = f"qdel {job_id}"
         stdout, stderr = self.ssh_execute(cmd)
         return stdout, stderr
+    
+    def ls(self, path: str = ""):
+        cmd = f"ls {path}"
+        stdout, stderr = self.ssh_execute(cmd)
+        return stdout, stderr
